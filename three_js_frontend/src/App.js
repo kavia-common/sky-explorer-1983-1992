@@ -2,6 +2,7 @@ import React from 'react';
 import logo from './logo.svg';
 import './App.css';
 import { useTheme } from './ui/ThemeProvider';
+import ThreeScene from './components/ThreeScene';
 
 // PUBLIC_INTERFACE
 function App() {
@@ -9,7 +10,13 @@ function App() {
 
   return (
     <div className="App">
-      <header className="App-header">
+      {/* 3D Scene */}
+      <div className="canvas-root" style={{ position: "fixed", inset: 0 }}>
+        <ThreeScene />
+      </div>
+
+      {/* UI overlay */}
+      <header className="App-header ui-overlay">
         <button
           className="theme-toggle"
           onClick={toggleTheme}
@@ -18,10 +25,10 @@ function App() {
           {theme === 'ocean' ? '🌙 Dark' : '🌊 Ocean'}
         </button>
         <img src={logo} className="App-logo" alt="logo" />
-        <p>
+        <p className="panel">
           Edit <code>src/App.js</code> and save to reload.
         </p>
-        <p>
+        <p className="panel">
           Current theme: <strong>{theme}</strong>
         </p>
         <a
