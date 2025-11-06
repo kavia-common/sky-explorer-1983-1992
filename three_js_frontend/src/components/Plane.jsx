@@ -77,6 +77,10 @@ const Plane = forwardRef(function Plane(
     getPhysicsState: () => physics.getState(),
     // PUBLIC_INTERFACE
     reset: (opts) => physics.reset(opts),
+    // PUBLIC_INTERFACE
+    start: () => physics.start(),
+    // PUBLIC_INTERFACE
+    stop: () => physics.stop(),
   }), [physics]);
 
   // Cached dimensions for primitive model

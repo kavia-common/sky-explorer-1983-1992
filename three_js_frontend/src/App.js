@@ -1,14 +1,68 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
 import { useTheme } from './ui/ThemeProvider';
 import ThreeScene from './components/ThreeScene';
 import Plane from './components/Plane';
 import HUDOverlay from './ui/HUDOverlay';
 import ControlsOverlay from './ui/ControlsOverlay';
+import { getControlsSnapshot, useKeyboardControlsStore } from './hooks/useKeyboardControls';
+
+// Feature flags/env usage helper
+function getEnvFlags() {
+  const nodeEnv = process.env.REACT_APP_NODE_ENV || process.env.NODE_ENV || 'development';
+  const logLevel = process.env.REACT_APP_LOG_LEVEL || 'info';
+  const featureFlagsRaw = process.env.REACT_APP_FEATURE_FLAGS || '';
+  const experimentsEnabled = String(process.env.REACT_APP_EXPERIMENTS_ENABLED || '').toLowerCase() === 'true';
+
+  const flags = new Set(
+    featureFlagsRaw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  );
+
+  return {
+    nodeEnv,
+    logLevel,
+    flags,
+    experimentsEnabled,
+    isProd: nodeEnv === 'production',
+  };
+}
+
+// Simple WebGL capability test (runs once on mount)
+function isWebGLAvailable() {
+  try {
+    const canvas = document.createElement('canvas');
+    const gl =
+      canvas.getContext('webgl') ||
+      canvas.getContext('experimental-webgl') ||
+      canvas.getContext('webgl2');
+    return !!gl;
+  } catch {
+    return false;
+  }
+}
 
 // PUBLIC_INTERFACE
 function App() {
   const { theme } = useTheme();
+
+  // Ensure keyboard handlers are active app-wide
+  useKeyboardControlsStore();
+
+  const env = useMemo(() => getEnvFlags(), []);
+
+  // WebGL support flag
+  const [webglOk, setWebglOk] = useState(true);
+  useEffect(() => {
+    // Respect explicit disable via feature flag if provided
+    if (env.flags.has('disable_webgl')) {
+      setWebglOk(false);
+      return;
+    }
+    setWebglOk(isWebGLAvailable());
+  }, [env.flags]);
 
   // Plane refs/state to feed HUD
   const planeRef = useRef();
@@ -17,13 +71,11 @@ function App() {
   const handlePauseToggle = () => {
     setPaused((p) => {
       const next = !p;
-      const api = planeRef.current?.getPhysicsState ? planeRef.current : null;
-      // If Plane exposes physics API via ref, control it here. Our Plane exposes getPhysicsState via ref API wrapper in Plane.jsx
-      // In this template we keep pause at app-level; physics hook respects a running flag via start/stop on the hook API.
       try {
-        if (planeRef.current?.getPhysicsState && planeRef.current?.reset) {
-          // Our Plane exposes only state methods; pausing is controlled internally by the physics hook.
-          // For this simplified integration, we just toggle a local 'paused' and the HUD reflects it via speed not updating if physics stops.
+        if (next) {
+          planeRef.current?.stop?.(); // stop physics updates
+        } else {
+          planeRef.current?.start?.(); // resume physics updates
         }
       } catch {
         // no-op
@@ -35,6 +87,7 @@ function App() {
   const handleReset = () => {
     try {
       planeRef.current?.reset?.();
+      // If paused, keep paused state but physics state is reset
     } catch {
       // ignore
     }
@@ -57,29 +110,108 @@ function App() {
     return { speed: spd, altitude: alt, heading: hdg };
   });
 
+  // Read live controls to show boost status in HUD
+  const boostActive = useMemo(() => {
+    try {
+      return !!getControlsSnapshot().boost;
+    } catch {
+      return false;
+    }
+  }, [speed, altitude, heading]); // re-evaluate periodically; simple tie to other updates
+
+  // When WebGL is not available, show fallback overlay and skip ThreeScene render
   return (
     <div className="App">
-      {/* 3D Scene */}
+      {/* 3D Scene or fallback */}
       <div className="canvas-root" style={{ position: "fixed", inset: 0 }}>
-        <ThreeScene>
-          {/* Add the plane into the scene */}
-          <Plane ref={planeRef} />
-        </ThreeScene>
+        {webglOk ? (
+          <ThreeScene>
+            <Plane ref={planeRef} />
+          </ThreeScene>
+        ) : (
+          <NoWebGLFallback />
+        )}
       </div>
 
-      {/* Ocean Professional UI Overlays */}
-      <HUDOverlay
-        speed={speed}
-        altitude={altitude}
-        heading={heading}
-        boostActive={false /* boost icon reflects live input in future wiring */}
-        cameraMode={"Chase"}
-      />
-      <ControlsOverlay
-        paused={paused}
-        onPauseToggle={handlePauseToggle}
-        onReset={handleReset}
-      />
+      {/* Ocean Professional UI Overlays (only if WebGL OK, otherwise the fallback already provides guidance) */}
+      {webglOk && (
+        <>
+          <HUDOverlay
+            speed={speed}
+            altitude={altitude}
+            heading={heading}
+            boostActive={boostActive}
+            cameraMode={"Chase"}
+          />
+          <ControlsOverlay
+            paused={paused}
+            onPauseToggle={handlePauseToggle}
+            onReset={handleReset}
+          />
+        </>
+      )}
+
+      {/* Optional environment banner for development/debug */}
+      {env.nodeEnv !== 'production' && (
+        <div
+          style={{
+            position: 'fixed',
+            left: 12,
+            top: 12,
+            padding: '4px 8px',
+            borderRadius: 8,
+            background: 'rgba(0,0,0,0.35)',
+            color: '#fff',
+            fontSize: 12,
+            pointerEvents: 'none',
+          }}
+          aria-hidden
+        >
+          {env.nodeEnv} · log:{env.logLevel}{env.flags.size ? ` · flags:[${Array.from(env.flags).join(',')}]` : ''}{env.experimentsEnabled ? ' · experiments' : ''}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NoWebGLFallback() {
+  return (
+    <div
+      className="ui-overlay"
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'grid',
+        placeItems: 'center',
+        background:
+          'linear-gradient(135deg, rgba(37, 99, 235, 0.10), var(--color-bg) 65%)',
+        padding: 24,
+      }}
+      role="alert"
+      aria-live="assertive"
+    >
+      <div
+        className="card"
+        style={{
+          maxWidth: 560,
+          textAlign: 'center',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 16,
+          boxShadow: 'var(--shadow-lg)',
+          padding: 24,
+        }}
+      >
+        <div style={{ fontSize: 28, marginBottom: 10 }}>⚠️ WebGL not available</div>
+        <p className="text-muted" style={{ color: 'var(--color-muted)', marginBottom: 16 }}>
+          Your browser or device does not support WebGL, which is required to render the 3D scene.
+        </p>
+        <ul style={{ textAlign: 'left', margin: '0 auto', maxWidth: 460, color: 'var(--color-text)' }}>
+          <li>Use a modern browser (Chrome, Edge, Firefox, Safari).</li>
+          <li>Ensure hardware acceleration is enabled in browser settings.</li>
+          <li>Update your graphics drivers or try a different device.</li>
+        </ul>
+      </div>
     </div>
   );
 }
