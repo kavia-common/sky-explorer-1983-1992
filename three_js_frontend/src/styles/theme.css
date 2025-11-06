@@ -46,6 +46,27 @@
   --gradient-accent: linear-gradient(135deg, rgba(37, 99, 235, 0.10), #f9fafb 65%);
 }
 
+/* Dark theme overrides via attribute selector */
+:root[data-theme="dark"] {
+  --color-primary: #60a5fa;   /* Lighter blue for contrast on dark */
+  --color-secondary: #F59E0B;
+  --color-success: #34D399;
+  --color-error: #F87171;
+
+  --color-bg: #0b1220;        /* Deep blue/near-black background */
+  --color-surface: #111827;   /* Dark panels */
+  --color-text: #e5e7eb;      /* Light text */
+
+  --color-muted: #9CA3AF;
+  --color-border: #1f2937;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.45);
+  --shadow-lg: 0 10px 24px rgba(0,0,0,0.4);
+
+  --gradient-accent: linear-gradient(135deg, rgba(96, 165, 250, 0.10), #0b1220 65%);
+}
+
 /* Gradient utility class */
 .gradient-accent {
   background-image: var(--gradient-accent);
