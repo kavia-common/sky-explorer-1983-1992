@@ -2,6 +2,8 @@ import React, { Suspense, useEffect, useMemo, useRef } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { Sky } from "@react-three/drei";
 import Environment, { TreesGroup, CloudsGroup, useSceneFog } from "./Environment";
+import Tree, { TreesField, useEnvironmentInteractionStore } from "./Tree";
+import Cloud, { CloudsField } from "./Cloud";
 
 /**
  * ThreeScene
@@ -34,8 +36,13 @@ export default function ThreeScene({ className = "", children }) {
             fog={{ color: "#dbeafe", near: 40, far: 480 }}
             ground={{ size: 400, color: "#e5e7eb", roughness: 0.96, metalness: 0.0 }}
           >
-            <TreesGroup count={28} radius={70} innerRadius={10} />
-            <CloudsGroup count={10} radius={120} innerRadius={40} y={28} />
+            {/* Legacy simple batches for baseline visuals */}
+            <TreesGroup count={18} radius={60} innerRadius={10} />
+            <CloudsGroup count={6} radius={120} innerRadius={40} y={28} />
+
+            {/* Interactive instances */}
+            <TreesField count={16} radius={90} innerRadius={22} y={0} />
+            <CloudsField count={10} radius={140} innerRadius={50} y={28} />
           </Environment>
         </Suspense>
 
@@ -48,6 +55,46 @@ export default function ThreeScene({ className = "", children }) {
         {/* Dev stats (optional). Comment out in production if desired. */}
         {/* <StatsGl /> */}
       </Canvas>
+      {/* Simple HUD counters overlay */}
+      <HUDOverlay />
+    </div>
+  );
+}
+
+/**
+ * PUBLIC_INTERFACE
+ * Hook to read environment interaction counters for HUD
+ */
+export function useEnvironmentHUD() {
+  return useEnvironmentInteractionStore((s) => ({
+    treesCollected: s.treesCollected,
+    cloudsFlownThrough: s.cloudsFlownThrough,
+    lastInteraction: s.lastInteraction,
+  }));
+}
+
+/**
+ * Minimal HUD overlay displayed at top-left over the canvas.
+ */
+function HUDOverlay() {
+  const { treesCollected, cloudsFlownThrough } = useEnvironmentHUD();
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 12,
+        left: 12,
+        background: "var(--color-surface)",
+        color: "var(--color-text)",
+        border: "1px solid var(--color-border)",
+        borderRadius: "10px",
+        boxShadow: "var(--shadow-sm)",
+        padding: "8px 12px",
+        fontSize: "12px",
+      }}
+    >
+      <div><strong>🌲 Trees:</strong> {treesCollected}</div>
+      <div><strong>☁️ Clouds:</strong> {cloudsFlownThrough}</div>
     </div>
   );
 }

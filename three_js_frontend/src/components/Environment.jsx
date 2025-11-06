@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import { useThree } from "@react-three/fiber";
+import Tree, { TreesField, useEnvironmentInteractionStore } from "./Tree";
+import Cloud, { CloudsField } from "./Cloud";
 
 /**
  * PUBLIC_INTERFACE
