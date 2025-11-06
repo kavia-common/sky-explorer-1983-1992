@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import { useThree } from "@react-three/fiber";
+import { Color, Fog } from "three"; // Ensure we can instantiate Fog/Color directly
 import Tree, { TreesField, useEnvironmentInteractionStore } from "./Tree";
 import Cloud, { CloudsField } from "./Cloud";
 
@@ -90,6 +91,8 @@ export function useSceneFog(fogOpt = false) {
 
   useEffect(() => {
     const prevFog = scene.fog;
+
+    // If fog disabled, clear and restore on cleanup
     if (!fogOpt) {
       scene.fog = null;
       return () => {
@@ -97,33 +100,57 @@ export function useSceneFog(fogOpt = false) {
       };
     }
 
+    // Normalize options
     const {
-      color = "#dbeafe",
+      color: colorInput = "#dbeafe",
       near = 40,
       far = 480,
-    } = fogOpt === true ? {} : fogOpt;
+    } = fogOpt === true ? {} : fogOpt || {};
 
-    // Use three.js Fog if available via global THREE on scene constructor
-    // Fallback to a simple compatible object if constructor not reachable.
-    let FogCtor = null;
+    // Create a valid THREE.Color, accepting string or number
+    let fogColor;
     try {
-      FogCtor =
-        // Try standard access
-        (scene && scene.constructor && scene.constructor.Fog) ||
-        // Some bundlers don't expose Fog on constructor, so check the existing fog instance if any
-        (scene.fog && scene.fog.constructor) ||
-        null;
+      fogColor = colorInput instanceof Color ? colorInput : new Color(colorInput);
     } catch {
-      FogCtor = null;
+      // Fallback to a safe default color if input is invalid
+      fogColor = new Color("#dbeafe");
     }
 
+    // Preferred: Use direct Fog import from 'three'
+    let createdFog = null;
     try {
-      // eslint-disable-next-line new-cap
-      scene.fog = FogCtor ? new FogCtor(color, near, far) : { color, near, far, isFog: true };
+      createdFog = new Fog(fogColor, near, far);
     } catch {
-      scene.fog = { color, near, far, isFog: true };
+      createdFog = null;
     }
 
+    // Fallback: try accessing Fog via global THREE if direct import fails
+    if (!createdFog) {
+      try {
+        // eslint-disable-next-line no-undef
+        if (typeof THREE !== "undefined" && THREE.Fog) {
+          // eslint-disable-next-line no-undef
+          createdFog = new THREE.Fog(fogColor, near, far);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // Last resort: assign a minimal fog-like object to avoid crashes (no color.getRGB usage)
+    if (!createdFog) {
+      createdFog = {
+        isFog: true,
+        color: fogColor, // a Color object
+        near,
+        far,
+      };
+    }
+
+    // Apply to the scene
+    scene.fog = createdFog;
+
+    // Cleanup: restore previous fog on unmount or change
     return () => {
       scene.fog = prevFog || null;
     };
