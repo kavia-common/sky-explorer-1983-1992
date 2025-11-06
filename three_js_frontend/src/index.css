@@ -1,13 +1,91 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Import Ocean Professional theme variables and utilities */
+@import url("./styles/theme.css");
+
+/* Modern CSS Reset/Baseline (minimal, non-intrusive) */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* App wrapper to ensure full-viewport canvas layout */
+.app,
+.App {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* Base typography */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0 0 0.5rem 0;
+  font-weight: 700;
+}
+
+p {
+  margin: 0 0 1rem 0;
+  font-size: var(--text-md);
+  line-height: 1.6;
+}
+
+/* Links */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+a:hover {
+  color: color-mix(in oklab, var(--color-primary), black 10%);
+  text-decoration: underline;
+}
+
+/* Buttons baseline (can be extended with .btn classes from theme.css) */
+button {
+  font-family: inherit;
+  font-size: var(--text-sm);
+}
+
+/* Canvas and full-bleed container helpers */
+.fullscreen,
+.full-viewport,
+.canvas-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Utility spacing */
+.container {
+  width: min(1100px, 92vw);
+  margin: 0 auto;
+  padding: 24px 0;
+}
+
+/* Remove default CRA styles interference */
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: var(--font-mono);
 }
