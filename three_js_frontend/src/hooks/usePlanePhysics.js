@@ -375,6 +375,6 @@ export function usePlanePhysics(initialState = {}, params = {}) {
  *     // mesh.rotation.set(orientation.pitch, orientation.yaw, orientation.roll);
  *   });
  *
- *   return <group>{/* plane mesh */}</group>;
+ *   // return your plane mesh/group node here
  * }
  */

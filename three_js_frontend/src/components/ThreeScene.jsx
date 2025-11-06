@@ -55,49 +55,11 @@ export default function ThreeScene({ className = "", children }) {
         {/* Dev stats (optional). Comment out in production if desired. */}
         {/* <StatsGl /> */}
       </Canvas>
-      {/* Simple HUD counters overlay */}
-      <HUDOverlay />
     </div>
   );
 }
 
-/**
- * PUBLIC_INTERFACE
- * Hook to read environment interaction counters for HUD
- */
-export function useEnvironmentHUD() {
-  return useEnvironmentInteractionStore((s) => ({
-    treesCollected: s.treesCollected,
-    cloudsFlownThrough: s.cloudsFlownThrough,
-    lastInteraction: s.lastInteraction,
-  }));
-}
 
-/**
- * Minimal HUD overlay displayed at top-left over the canvas.
- */
-function HUDOverlay() {
-  const { treesCollected, cloudsFlownThrough } = useEnvironmentHUD();
-  return (
-    <div
-      style={{
-        position: "absolute",
-        top: 12,
-        left: 12,
-        background: "var(--color-surface)",
-        color: "var(--color-text)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "10px",
-        boxShadow: "var(--shadow-sm)",
-        padding: "8px 12px",
-        fontSize: "12px",
-      }}
-    >
-      <div><strong>🌲 Trees:</strong> {treesCollected}</div>
-      <div><strong>☁️ Clouds:</strong> {cloudsFlownThrough}</div>
-    </div>
-  );
-}
 
 /**
  * Lights
